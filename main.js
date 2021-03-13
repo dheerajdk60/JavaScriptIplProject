@@ -36,19 +36,21 @@ const DELIVERY_TOTAL_RUNS = 17;
 const DELIVERY_PLAYER_DISMISSED = 18;
 const DELIVERY_DISMISSAL_KIND = 19;
 const DELIVERY_FIELDER = 20;
+const BALLS_BOWLED=0;
+const RUNS_GIVEN=1;
 const fs = require('fs');
 
-var matchesList = getMatchesList();
-var deliveriesList = getDeliveriesList();
+var matches = getmatches();
+var deliveries = getdeliveries();
 matchesPlayedPerYear();
 matchesWonPerTeam();
 extraRunsConcededPerTeamIn2016();
 topEconomicalBowlersIn2015();
-function getMatchesList() {
+function getmatches() {
     var matchesLines = fs.readFileSync("matches.csv").toString().split("\n");
     matchesLines.shift();
     matchesLines.pop();
-    var matchesList = [];
+    var matches = [];
     matchesLines.forEach(line => {
         let fields = line.split(",");
         var adjustingIndex = 0;
@@ -75,15 +77,15 @@ function getMatchesList() {
             umpire1: fields[MATCH_UMPIRE1 + adjustingIndex],
             umpire2: fields[MATCH_UMPIRE2 + adjustingIndex],
         };
-        matchesList.push(match);
+        matches.push(match);
     });
-    return matchesList;
+    return matches;
 }
-function getDeliveriesList() {
+function getdeliveries() {
     var deliveriesLines = fs.readFileSync("deliveries.csv").toString().split("\n");
     deliveriesLines.shift();
     deliveriesLines.pop();
-    var deliveriesList = [];
+    var deliveries = [];
     deliveriesLines.forEach(line => {
         let fields = line.split(",");
         var delivery = {
@@ -109,103 +111,91 @@ function getDeliveriesList() {
             dismissalKind: fields[DELIVERY_DISMISSAL_KIND],
             fielder: fields[DELIVERY_FIELDER] == "\r" ? "" : fields[DELIVERY_FIELDER],
         };
-        deliveriesList.push(delivery);
+        deliveries.push(delivery);
     });
-    return deliveriesList;
+    return deliveries;
 }
 function matchesPlayedPerYear() {
     console.log("Number of matches played per year of all the years in IPL");
     var matchesPlayedPerYear = {};
-    matchesList.forEach(match => {
+    matches.forEach(match => {
         matchesPlayedPerYear["" + match.date.getFullYear()] = (matchesPlayedPerYear["" + match.date.getFullYear()] == undefined) ? 1 : matchesPlayedPerYear["" + match.date.getFullYear()] + 1;
     });
-    for (key in matchesPlayedPerYear) {
-        console.log(key + "  " + matchesPlayedPerYear[key]);
+    for (year in matchesPlayedPerYear) {
+        console.log(year + "  " + matchesPlayedPerYear[year]);
     }
 }
-function matchesWonPerTeam()
-{
+function matchesWonPerTeam() {
     console.log("Number of matches won of all teams over all the years of IPL");
     var matchesWonPerTeam = {};
-    matchesList.forEach(match => {
-        matchesWonPerTeam[match.winner] = (matchesWonPerTeam[ match.winner] == undefined) ? 1 : matchesWonPerTeam[ match.winner] + 1;
+    matches.forEach(match => {
+        matchesWonPerTeam[match.winner] = (matchesWonPerTeam[match.winner] == undefined) ? 1 : matchesWonPerTeam[match.winner] + 1;
     });
-    for (key in matchesWonPerTeam) {
-        if(key.length!=0)
-        {
-            console.log(key + "  " + matchesWonPerTeam[key]);
+    for (teamName in matchesWonPerTeam) {
+        if (teamName.length != 0) {
+            console.log(teamName + "  " + matchesWonPerTeam[teamName]);
         }
     }
 }
-function extraRunsConcededPerTeamIn2016()
-{
+function extraRunsConcededPerTeamIn2016() {
     console.log("For the year 2016 get the extra runs conceded per team");
     var teamNameWithRunsConceded = {};
-    deliveriesList.forEach(function (delivery) {
-            if (matchesList[delivery.id - 1].date.getFullYear() == 2016) {
-               if( teamNameWithRunsConceded[delivery.bowlingTeam]==undefined) 
-               {
-                    teamNameWithRunsConceded[delivery.bowlingTeam]=Number(delivery.extraRuns) ;
-               }
-               else{
-                teamNameWithRunsConceded[delivery.bowlingTeam]+=Number(delivery.extraRuns);
-               }
+    deliveries.forEach(function (delivery) {
+        if (matches[delivery.id - 1].date.getFullYear() == 2016) {
+            if (teamNameWithRunsConceded[delivery.bowlingTeam] == undefined) {
+                teamNameWithRunsConceded[delivery.bowlingTeam] = Number(delivery.extraRuns);
             }
-        });
-    for (key in  teamNameWithRunsConceded) {
-        console.log(key + "  " + teamNameWithRunsConceded[key]);
+            else {
+                teamNameWithRunsConceded[delivery.bowlingTeam] += Number(delivery.extraRuns);
+            }
+        }
+    });
+    for (teamName in teamNameWithRunsConceded) {
+        console.log(teamName + "  " + teamNameWithRunsConceded[teamName]);
     }
 }
-function topEconomicalBowlersIn2015()
-{
+function topEconomicalBowlersIn2015() {
     console.log("For the year 2015 get the top economical bowlers");
     var topEconomicalBowlers = {};
-    deliveriesList.forEach(function (delivery) {
-            if (matchesList[delivery.id - 1].date.getFullYear() == 2015) {
-                var runs=getInt(delivery.noBallRuns)+getInt(delivery.extraRuns)+getInt(delivery.batsmanRuns)+getInt(delivery.wideRuns);
-                if(topEconomicalBowlers[delivery.bowler]==undefined)
-                {
-                    topEconomicalBowlers[delivery.bowler]=[1,runs];
-                }
-                else{
-                    topEconomicalBowlers[delivery.bowler][0]++;
-                    topEconomicalBowlers[delivery.bowler][1]+=runs;
-                }
+    deliveries.forEach(function (delivery) {
+        if (matches[delivery.id - 1].date.getFullYear() == 2015) {
+            var runs = getInt(delivery.noBallRuns) + getInt(delivery.extraRuns) + getInt(delivery.batsmanRuns) + getInt(delivery.wideRuns);
+            if (topEconomicalBowlers[delivery.bowler] == undefined) {
+                topEconomicalBowlers[delivery.bowler] = [1, runs];
             }
-        });
-        var bowlersNames=[];
-        var bowlersEconomies=[];
-        for(bowlerName in topEconomicalBowlers)
-        {
-            var bowlerEconomyDetails=topEconomicalBowlers[bowlerName];
-            var economy=bowlerEconomyDetails[1]/(bowlerEconomyDetails[0]/6.0);
-            economy=Number(economy.toFixed(3));
-            bowlersNames.push(bowlerName);
-            bowlersEconomies.push(economy);
+            else {
+                topEconomicalBowlers[delivery.bowler][BALLS_BOWLED]++;
+                topEconomicalBowlers[delivery.bowler][RUNS_GIVEN] += runs;
+            }
         }
-        for(var i=0;i<bowlersEconomies.length;i++)
-        {
-            for(var j=i+1;j<bowlersEconomies.length;j++)
-            {
-                if(bowlersEconomies[i]>bowlersEconomies[j])
-                {
-                    var temp=bowlersEconomies[i];
-                    bowlersEconomies[i]=bowlersEconomies[j];
-                    bowlersEconomies[j]=temp;
-                    temp=bowlersNames[i];
-                    bowlersNames[i]=bowlersNames[j];
-                    bowlersNames[j]=temp;
-                }
-            }   
+    });
+    var bowlersNames = [];
+    var bowlersEconomies = [];
+    for (bowlerName in topEconomicalBowlers) {
+        var bowlerEconomyDetails = topEconomicalBowlers[bowlerName];
+        var economy = bowlerEconomyDetails[RUNS_GIVEN] / (bowlerEconomyDetails[BALLS_BOWLED] / 6.0);
+        economy = Number(economy.toFixed(3));
+        bowlersNames.push(bowlerName);
+        bowlersEconomies.push(economy);
+    }
+    for (var i = 0; i < bowlersEconomies.length; i++) {
+        for (var j = i + 1; j < bowlersEconomies.length; j++) {
+            if (bowlersEconomies[i] > bowlersEconomies[j]) {
+                var temp = bowlersEconomies[i];
+                bowlersEconomies[i] = bowlersEconomies[j];
+                bowlersEconomies[j] = temp;
+                temp = bowlersNames[i];
+                bowlersNames[i] = bowlersNames[j];
+                bowlersNames[j] = temp;
+            }
         }
-        for(var i=0;i<bowlersEconomies.length;i++)
-        {
-            console.log(bowlersEconomies[i]+"     "+bowlersNames[i]);
-        }
+    }
+    for (var i = 0; i < bowlersEconomies.length; i++) {
+        console.log(bowlersEconomies[i] + "     " + bowlersNames[i]);
+    }
 }
-function getInt(num)
-{
-    if(Number(num)==NaN)
-    return 0;
+function getInt(num) {
+    if (Number(num) == NaN)
+        return 0;
     return Number(num);
 }
